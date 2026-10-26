@@ -117,11 +117,182 @@ int deletePerson(char* surname, Position p){
     }
 
     prev->next = curr->next;
+    /* ovime preskacemo / izbacujemo
+    element koji smo pronasli tj premoscujemo
+    i stavljamo da na prev neide vise current
+    onaj koji ide poslije currenta */
 
     free(curr);
 
     return 0;
 }
+
+// TRECI ZADATAK
+int insertAfterEl(char* targetSurname, char* name, char* surname, int birthYear, Position p){
+    Position q = p->next;
+
+    while (q != NULL && strcmp(q->surname, targetSurname) != 0){     //podsjetnik - strcmp vraca 0 ako su oba teksta potpuno ista!
+        q = q->next;
+    }
+
+    if (q == NULL){
+        printf ("Osoba nije pronadena!");
+        return 1;
+    }
+
+    Person* person;
+    person = (Person*) malloc (sizeof(Person));
+
+    if (person == NULL){
+        printf("Dinamicka alokacija nije uspjela!\n");
+        return 1;
+    }
+
+    strcpy(person->name, name);
+    strcpy(person->surname, surname);
+    person->birthYear = birthYear;
+
+    insertAfter(q, person);
+
+    return 0;
+
+}
+
+int insertBeforeEl(char* targetSurname, char* name, char* surname, int birthYear, Position p){
+    Position prev = p;
+    Position q = p->next;
+
+    while (q != NULL && strcmp(q->surname, targetSurname) != 0){
+        prev = q;
+        q = q->next;
+    }
+
+    if (q == NULL){
+        printf("Osoba nije pronadena!");
+        return 1;
+    }
+
+    Person* person;
+    person = (Person*) malloc (sizeof(Person));
+
+    if (person == NULL){
+        printf("Dinamicka alokacija nije uspjela!\n");
+        return 1;
+    }
+
+    strcpy(person->name, name);
+    strcpy(person->surname, surname);
+    person->birthYear = birthYear;
+
+    insertAfter(prev, person);
+
+    return 0;
+
+}
+
+//C 
+int sortList(Position p) {
+    if (p->next == NULL) {
+        return 0; // Lista je prazna ili ima samo jedan element, već je sortirana
+    }
+
+    Position i, j;
+    char tempName[50], tempSurname[50];
+    int tempYear;
+    int swapped;
+
+    do {
+        swapped = 0;
+        i = p->next; // Krećemo od prvog pravog elementa
+
+        while (i->next != NULL) {
+            // Uspoređujemo susjede koristeći strcmp
+            // Ako je prvo prezime "veće" po abecedi od drugog (> 0)
+            if (strcmp(i->surname, i->next->surname) > 0) {
+                
+                // 1. Privremeno spremamo podatke od i
+                strcpy(tempName, i->name);
+                strcpy(tempSurname, i->surname);
+                tempYear = i->birthYear;
+
+                // 2. Prebacujemo podatke od i nadjačavamo s i->next
+                strcpy(i->name, i->next->name);
+                strcpy(i->surname, i->next->surname);
+                i->birthYear = i->next->birthYear;
+
+                // 3. Vraćamo stare podatke od i u i->next
+                strcpy(i->next->name, tempName);
+                strcpy(i->next->surname, tempSurname);
+                i->next->birthYear = tempYear;
+
+                swapped = 1; // Zabilježili smo da je bilo zamjene
+            }
+            i = i->next;
+        }
+    } while (swapped); // Ponavljamo dok god je bilo promjena
+
+    return 0;
+}
+
+int writeListToFile(Position p){
+    Position q = p->next;
+
+    FILE* file;
+    file = fopen("Osobe.txt", "w");
+    if (file == NULL){
+        printf("Datoteka se nije uspjela otvoriti!");
+        return 1;
+    }
+
+    while(q != NULL){
+        fprintf(file, "%s %s %d\n", q->name, q->surname, q->birthYear);
+        q = q->next;
+    }
+
+    fclose(file);
+    return 0;
+}
+
+int readFromFile(Position p){
+
+    FILE* file;
+    file = fopen("Osobe.txt", "r");
+    if (file == NULL){
+        printf("Doslo je do pogreske prilikom otvaranja!\n");
+        return 1;
+    }
+
+    char name[50];
+    char surname[50];
+    int birthYear;
+
+    //fscanf vraca broj procitanih stavki
+    while (fscanf(file, "%s %s %d", name, surname, &birthYear)==3){
+        Person* person;
+        person = (Person*) malloc (sizeof(Person));
+        if (person == NULL){
+            printf("Pogreska prilikom alokacije!\n");
+            fclose(file);
+            return 1;
+        }
+
+        strcpy(person->name, name);
+        strcpy(person->surname, surname);
+        person->birthYear = birthYear;
+
+    Position last = p;
+    while (last->next != NULL){
+        last = last->next;
+    }
+    insertAfter(last, person);
+
+    }
+
+    fclose(file);
+
+    return 0;
+}
+
 
 int main(){
 
@@ -136,6 +307,7 @@ int main(){
 
     insertBegin("Marko ", "Markic", 1995, p);
     insertBegin("Luka ", "Lukic", 2000, p);
+    insertBegin("Marin ", "Marinic", 2000, p);
 
     insertEnd("Petar ", "Petric", 1997, p);
 
@@ -148,6 +320,42 @@ int main(){
 
     deletePerson ("Lukic", p);
     printf("\nLista nakon brisanja:\n");
+    printList(p);
+    printf("\n");
+
+    // TRECI ZADATAK
+    printf("Treci zadatak:\n");
+
+    insertAfterEl("Marinic", "Ante", "Antic", 2004, p);
+    insertBeforeEl("Markic", "Josip", "josipovic", 2001, p);
+
+    printList(p);
+
+    printf("\n");
+    //C 
+    sortList(p);
+    printList(p);
+
+    //D
+    writeListToFile(p);
+
+    //E
+    
+    //brisanje el. unutar vezane liste da ne ispisuje duplo
+    Position current = p->next;
+    Position nextNode = NULL;
+
+    while (current != NULL){
+        nextNode = current->next;
+        free (current);
+        current = nextNode;
+    }
+
+    p->next = NULL; // head liste vise ne pokazuje ni na koga jer je lista prazna
+
+
+    printf("Sadrzaj datoteke:\n");
+    readFromFile(p);
     printList(p);
 
     return 0;
